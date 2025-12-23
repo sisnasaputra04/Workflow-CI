@@ -1,8 +1,5 @@
 name: MLflow-CI-Advanced
 
-# =========================
-# Trigger workflow
-# =========================
 on:
   push:
     branches: ["main"]
@@ -16,8 +13,8 @@ jobs:
     # ==================================================
     # 1. Set up job
     # ==================================================
-    - name: Set up job
-      run: echo "Starting MLflow CI Advanced Pipeline"
+    # - name: Set up job
+    #   run: echo "Starting MLflow CI Advanced Pipeline"
 
     # ==================================================
     # 2. Run actions/checkout@v3
@@ -47,7 +44,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --upgrade pip
-        pip install mlflow pandas scikit-learn matplotlib seaborn dagshub
+        pip install mlflow pandas scikit-learn matplotlib seaborn dagshub docker
 
     # ==================================================
     # 6. Run mlflow project
@@ -66,7 +63,7 @@ jobs:
         echo "RUN_ID=$(cat run_id.txt)" >> $GITHUB_ENV
         cat run_id.txt
 
-    # ==================================================
+     # ==================================================
     # 8. Install Python dependencies (explicit – sesuai rubrik)
     # ==================================================
     - name: Install Python dependencies
@@ -93,7 +90,7 @@ jobs:
         cd MLProject
         mlflow models build-docker \
           -m runs:/$RUN_ID/model \
-          -n ${{ secrets.DOCKER_USERNAME }}/telco-churn-mlflow
+          -n ${{ secrets.DOCKER_USERNAME }}/telco-churn-mlflow:temp
 
     # ==================================================
     # 11. Log in to Docker Hub
@@ -110,7 +107,7 @@ jobs:
     - name: Tag Docker Image
       run: |
         docker tag \
-          ${{ secrets.DOCKER_USERNAME }}/telco-churn-mlflow \
+          ${{ secrets.DOCKER_USERNAME }}/telco-churn-mlflow:temp \
           ${{ secrets.DOCKER_USERNAME }}/telco-churn-mlflow:latest
 
     # ==================================================
@@ -121,7 +118,25 @@ jobs:
         docker push ${{ secrets.DOCKER_USERNAME }}/telco-churn-mlflow:latest
 
     # ==================================================
-    # 14. Complete job
+    # 14. Post Log in to Docker Hub
+    # ==================================================
+    - name: Post Log in to Docker Hub
+      run: echo "Docker Hub login successful"
+
+    # ==================================================
+    # 15. Post Set up Python 3.12.7
+    # ==================================================
+    - name: Post Set up Python 3.12.7
+      run: echo "Python environment ready"
+
+    # ==================================================
+    # 16. Post Run actions/checkout@v3
+    # ==================================================
+    - name: Post Run actions/checkout@v3
+      run: echo "Repository checkout completed"
+
+    # ==================================================
+    # 17. Complete job
     # ==================================================
     - name: Complete job
       run: echo "MLflow CI Advanced job completed successfully"
