@@ -33,7 +33,10 @@ TRAIN_PATH = os.path.join(DATA_DIR, "telco_train_processed.csv")
 TEST_PATH  = os.path.join(DATA_DIR, "telco_test_processed.csv")
 
 ARTIFACT_DIR = os.path.join(BASE_DIR, "artifacts")
+MODEL_LOCAL_DIR = os.path.join(BASE_DIR, "model_local")
+
 os.makedirs(ARTIFACT_DIR, exist_ok=True)
+os.makedirs(MODEL_LOCAL_DIR, exist_ok=True)
 
 # ======================================================
 # Load Dataset
@@ -83,7 +86,7 @@ with mlflow.start_run(run_name="telco_logreg_ci"):
     mlflow.log_metrics(metrics)
 
     # ==================================================
-    # MODEL
+    # LOG MODEL (MLflow)
     # ==================================================
     mlflow.sklearn.log_model(
         sk_model=model,
@@ -91,7 +94,15 @@ with mlflow.start_run(run_name="telco_logreg_ci"):
     )
 
     # ==================================================
-    # ARTIFACT 1: Confusion Matrix (PNG)
+    # SAVE MODEL LOKAL (WAJIB UNTUK DOCKER)
+    # ==================================================
+    mlflow.sklearn.save_model(
+        sk_model=model,
+        path=MODEL_LOCAL_DIR
+    )
+
+    # ==================================================
+    # ARTIFACT 1: Confusion Matrix
     # ==================================================
     cm = confusion_matrix(y_test, y_pred)
 
@@ -109,7 +120,7 @@ with mlflow.start_run(run_name="telco_logreg_ci"):
     mlflow.log_artifact(cm_path)
 
     # ==================================================
-    # ARTIFACT 2: Classification Report (TXT)
+    # ARTIFACT 2: Classification Report
     # ==================================================
     report_path = os.path.join(ARTIFACT_DIR, "classification_report.txt")
     with open(report_path, "w") as f:
@@ -118,7 +129,7 @@ with mlflow.start_run(run_name="telco_logreg_ci"):
     mlflow.log_artifact(report_path)
 
     # ==================================================
-    # ARTIFACT 3: Metric Summary (JSON)
+    # ARTIFACT 3: Metric Summary JSON
     # ==================================================
     metric_json_path = os.path.join(ARTIFACT_DIR, "metric_summary.json")
     with open(metric_json_path, "w") as f:
@@ -127,10 +138,9 @@ with mlflow.start_run(run_name="telco_logreg_ci"):
     mlflow.log_artifact(metric_json_path)
 
     # ==================================================
-    # SAVE RUN ID (UNTUK CI & DOCKER)
+    # SAVE RUN ID (CI)
     # ==================================================
     run_id = mlflow.active_run().info.run_id
-
     with open("run_id.txt", "w") as f:
         f.write(run_id)
 
@@ -143,4 +153,5 @@ with mlflow.start_run(run_name="telco_logreg_ci"):
     print("Training Completed Successfully")
     print("Run ID :", run_id)
     print("Metrics:", metrics)
+    print("Model saved to:", MODEL_LOCAL_DIR)
     print("===================================")
