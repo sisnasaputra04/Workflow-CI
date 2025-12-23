@@ -1,7 +1,7 @@
 name: telco-churn-ci-env
 
 channels:
-  - conda-forge
+  - defaults
 
 dependencies:
   - python=3.12.7
@@ -12,3 +12,5 @@ dependencies:
       - scikit-learn
       - matplotlib
       - seaborn
+      - numpy
+      - joblib

@@ -1,122 +1,142 @@
-# ======================================================
-# Modelling (CI SAFE - MLflow Project)
-# ======================================================
-
 import os
 import json
-import pandas as pd
 import mlflow
+import pandas as pd
 import mlflow.sklearn
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import seaborn as sns
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import (
-    accuracy_score,
-    precision_score,
-    recall_score,
-    f1_score,
-    confusion_matrix,
-    classification_report
-)
 
 # ======================================================
-# Path Configuration
+# Load Processed Dataset
 # ======================================================
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "telco_churn_preprocessing")
+def load_processed_data():
+    """
+    Memuat dataset Telco Churn yang sudah diproses
+    """
+    base_dir = os.path.dirname(os.path.abspath(__file__))
 
-TRAIN_PATH = os.path.join(DATA_DIR, "telco_train_processed.csv")
-TEST_PATH  = os.path.join(DATA_DIR, "telco_test_processed.csv")
+    data_dir = os.path.join(base_dir, "telco_churn_preprocessing")
+    train_csv = os.path.join(data_dir, "telco_train_processed.csv")
+    test_csv  = os.path.join(data_dir, "telco_test_processed.csv")
 
-ARTIFACT_DIR = os.path.join(BASE_DIR, "artifacts")
-os.makedirs(ARTIFACT_DIR, exist_ok=True)
+    if not os.path.exists(train_csv) or not os.path.exists(test_csv):
+        raise FileNotFoundError(
+            "Processed dataset tidak ditemukan.\n"
+            f"- Expected train: {train_csv}\n"
+            f"- Expected test : {test_csv}"
+        )
 
-# ======================================================
-# Load Dataset
-# ======================================================
-train_df = pd.read_csv(TRAIN_PATH)
-test_df  = pd.read_csv(TEST_PATH)
+    train_df = pd.read_csv(train_csv)
+    test_df  = pd.read_csv(test_csv)
 
-X_train = train_df.drop("Churn", axis=1)
-y_train = train_df["Churn"]
+    target = "Churn"
+    if target not in train_df.columns:
+        raise ValueError(f"Kolom target '{target}' tidak ditemukan")
 
-X_test = test_df.drop("Churn", axis=1)
-y_test = test_df["Churn"]
+    X_train = train_df.drop(columns=[target])
+    y_train = train_df[target]
 
-# ======================================================
-# Training (NO start_run, NO set_experiment)
-# ======================================================
-model = LogisticRegression(
-    max_iter=1000,
-    solver="liblinear"
-)
-model.fit(X_train, y_train)
+    X_test = test_df.drop(columns=[target])
+    y_test = test_df[target]
 
-y_pred = model.predict(X_test)
+    print(f"[INFO] Dataset Loaded | Train: {X_train.shape} | Test: {X_test.shape}")
+    return X_train, y_train, X_test, y_test
 
-# ======================================================
-# Metrics
-# ======================================================
-metrics = {
-    "accuracy": accuracy_score(y_test, y_pred),
-    "precision": precision_score(y_test, y_pred, zero_division=0),
-    "recall": recall_score(y_test, y_pred, zero_division=0),
-    "f1_score": f1_score(y_test, y_pred, zero_division=0),
-}
-
-mlflow.log_param("model_type", "LogisticRegression")
-mlflow.log_param("solver", "liblinear")
-mlflow.log_param("max_iter", 1000)
-mlflow.log_metrics(metrics)
 
 # ======================================================
-# Log Model (WAJIB: artifact_path="model")
+# Training with MLflow (CI SAFE)
 # ======================================================
-mlflow.sklearn.log_model(
-    sk_model=model,
-    artifact_path="model"
-)
+def run_training(X_train, y_train, X_test, y_test):
+    """
+    Training model RandomForest dengan MLflow Autolog
+    """
+
+    # Gunakan tracking URI dari environment (CI)
+    tracking_uri = os.getenv("MLFLOW_TRACKING_URI", "")
+    mlflow.set_tracking_uri(tracking_uri)
+    print(f"[INFO] MLFLOW_TRACKING_URI: {tracking_uri or '(default)'}")
+
+    # Pastikan tidak ada conflict run CI
+    os.environ.pop("MLFLOW_RUN_ID", None)
+    os.environ.pop("MLFLOW_EXPERIMENT_ID", None)
+
+    # Aktifkan Autolog
+    mlflow.autolog()
+
+    # Set experiment (AMAN DI CI)
+    mlflow.set_experiment("Experiment_CI_Telco_Churn")
+
+    print("[INFO] Training RandomForestClassifier (CI)...")
+    with mlflow.start_run(run_name="rf_telco_ci") as run:
+
+        # Simpan run_id untuk workflow
+        run_id_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "run_id.txt")
+        with open(run_id_path, "w", encoding="utf-8") as f:
+            f.write(run.info.run_id)
+
+        model = RandomForestClassifier(
+            n_estimators=200,
+            max_depth=None,
+            random_state=42,
+            n_jobs=-1
+        )
+
+        # Training
+        model.fit(X_train, y_train)
+
+        # Evaluasi
+        y_pred = model.predict(X_test)
+
+        acc  = accuracy_score(y_test, y_pred)
+        prec = precision_score(y_test, y_pred, zero_division=0)
+        rec  = recall_score(y_test, y_pred, zero_division=0)
+        f1   = f1_score(y_test, y_pred, zero_division=0)
+
+        # Log metric manual
+        mlflow.log_metric("test_accuracy_manual", float(acc))
+        mlflow.log_metric("precision", float(prec))
+        mlflow.log_metric("recall", float(rec))
+        mlflow.log_metric("f1", float(f1))
+
+        # WAJIB: simpan model di artifact_path="model"
+        mlflow.sklearn.log_model(
+            sk_model=model,
+            artifact_path="model"
+        )
+
+        # Artifact tambahan
+        outputs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "outputs")
+        os.makedirs(outputs_dir, exist_ok=True)
+
+        metrics_path = os.path.join(outputs_dir, "metrics.json")
+        with open(metrics_path, "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "accuracy": float(acc),
+                    "precision": float(prec),
+                    "recall": float(rec),
+                    "f1": float(f1),
+                    "run_id": run.info.run_id
+                },
+                f,
+                indent=2
+            )
+
+        mlflow.log_artifacts(outputs_dir, artifact_path="outputs")
+
+        print("\n[SUCCESS] Training Selesai")
+        print(f"[INFO] Run ID        : {run.info.run_id}")
+        print(f"[INFO] Accuracy     : {acc:.4f}")
+        print(f"[INFO] F1 Score     : {f1:.4f}")
+        print("[INFO] Model tersimpan di artifacts/model/")
+        print("[INFO] run_id.txt siap dibaca workflow CI")
+
 
 # ======================================================
-# Artifacts
+# Main
 # ======================================================
-cm = confusion_matrix(y_test, y_pred)
-plt.figure(figsize=(5, 4))
-sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
-plt.tight_layout()
-
-cm_path = os.path.join(ARTIFACT_DIR, "confusion_matrix.png")
-plt.savefig(cm_path)
-plt.close()
-mlflow.log_artifact(cm_path)
-
-report_path = os.path.join(ARTIFACT_DIR, "classification_report.txt")
-with open(report_path, "w") as f:
-    f.write(classification_report(y_test, y_pred, zero_division=0))
-mlflow.log_artifact(report_path)
-
-metric_json_path = os.path.join(ARTIFACT_DIR, "metric_summary.json")
-with open(metric_json_path, "w") as f:
-    json.dump(metrics, f, indent=4)
-mlflow.log_artifact(metric_json_path)
-
-# ======================================================
-# Save run_id (CI & Docker)
-# ======================================================
-run_id = mlflow.active_run().info.run_id
-run_id_path = os.path.join(BASE_DIR, "run_id.txt")
-
-with open(run_id_path, "w") as f:
-    f.write(run_id)
-
-mlflow.log_artifact(run_id_path)
-
-print("===================================")
-print("Training Completed Successfully")
-print("Run ID:", run_id)
-print("Metrics:", metrics)
-print("===================================")
+if __name__ == "__main__":
+    X_train, y_train, X_test, y_test = load_processed_data()
+    run_training(X_train, y_train, X_test, y_test)
