@@ -1,5 +1,5 @@
 # ======================================================
-# Modelling
+# Modelling (CI SAFE - MLflow Project)
 # ======================================================
 
 import os
@@ -22,12 +22,6 @@ from sklearn.metrics import (
     confusion_matrix,
     classification_report
 )
-
-# ======================================================
-# MLflow Configuration (WAJIB CI)
-# ======================================================
-mlflow.set_tracking_uri("file:./mlruns")
-mlflow.set_experiment("Telco-Churn-CI")
 
 # ======================================================
 # Path Configuration
@@ -54,9 +48,8 @@ X_test = test_df.drop("Churn", axis=1)
 y_test = test_df["Churn"]
 
 # ======================================================
-# Training + Logging
+# Training (NO start_run, NO set_experiment)
 # ======================================================
-
 model = LogisticRegression(
     max_iter=1000,
     solver="liblinear"
@@ -122,5 +115,8 @@ with open(run_id_path, "w") as f:
 
 mlflow.log_artifact(run_id_path)
 
+print("===================================")
+print("Training Completed Successfully")
 print("Run ID:", run_id)
 print("Metrics:", metrics)
+print("===================================")
