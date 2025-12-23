@@ -100,9 +100,10 @@ jobs:
       - name: Build Docker Model
         run: |
           RUN_ID=$(cat MLProject/run_id.txt)
+          echo "Build docker from RUN_ID=$RUN_ID"
           mlflow models build-docker \
             -m "runs:/$RUN_ID/model" \
-            -n "${{ secrets.DOCKER_USERNAME }}/telco-churn:latest"
+            -n "${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:latest"
       
       - name: DEBUG - List Docker Images
         run: |
@@ -111,18 +112,16 @@ jobs:
       # ==================================================
       # 9. Tag Docker Image
       # ==================================================
-      # - name: Tag Docker Image
-      #   run: |
-      #     docker tag \
-      #       "$IMAGE_NAME:latest" \
-      #       "${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:latest"
+      - name: Tag Docker Image
+        run: |
+          docker tag telco-churn:latest *** /telco-churn:latest
 
       # ==================================================
       # 10. Push Docker Image
       # ==================================================
       - name: Push Docker Image
         run: |
-          docker push "${{ secrets.DOCKER_USERNAME }}/telco-churn:latest"
+          docker push *** /telco-churn:latest
 
       # ==================================================
       # 11. Done
