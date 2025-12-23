@@ -86,7 +86,7 @@ jobs:
       run: |
         cd MLProject
         mlflow models build-docker \
-          -m "runs:/$RUN_ID/artifacts/model" \
+          -m "runs:/$RUN_ID/model" \
           -n "${{ secrets.DOCKER_USERNAME }}/${IMAGE_NAME}:latest"
 
     # ==================================================
