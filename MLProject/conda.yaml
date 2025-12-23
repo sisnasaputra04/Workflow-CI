@@ -1,0 +1,14 @@
+name: telco-churn-ci-env
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+      - mlflow
+      - pandas
+      - scikit-learn
+      - matplotlib
+      - seaborn
