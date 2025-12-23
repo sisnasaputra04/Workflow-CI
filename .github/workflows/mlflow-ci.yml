@@ -103,7 +103,7 @@ jobs:
           echo "Build docker from RUN_ID=$RUN_ID"
           mlflow models build-docker \
             -m "runs:/$RUN_ID/model" \
-            -n "${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:latest"
+            -n "telco-churn:latest"
       
       - name: DEBUG - List Docker Images
         run: |
