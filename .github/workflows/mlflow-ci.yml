@@ -125,7 +125,7 @@ jobs:
       # ==================================================
       - name: Push Docker Image
         run: |
-          docker push ***/telco-churn:latest
+          docker push "${{ secrets.DOCKER_USERNAME }}/telco-churn:latest"
 
       # ==================================================
       # 11. Done
