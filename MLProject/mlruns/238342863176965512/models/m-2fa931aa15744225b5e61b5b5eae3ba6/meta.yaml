@@ -1,0 +1,10 @@
+artifact_location: file:C:/Users/Apri Sisna/OneDrive/Dokumen/SMSML_I-Kadek-Apri-Sisna-Saputra/Workflow-CI/MLProject/mlruns/238342863176965512/models/m-2fa931aa15744225b5e61b5b5eae3ba6/artifacts
+creation_timestamp: 1766489665649
+experiment_id: '238342863176965512'
+last_updated_timestamp: 1766489669673
+model_id: m-2fa931aa15744225b5e61b5b5eae3ba6
+model_type: null
+name: model
+source_run_id: 5cdbfd539eef486cb97eddc5fb9dab85
+status: 2
+status_message: null

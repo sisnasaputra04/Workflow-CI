@@ -56,65 +56,71 @@ y_test = test_df["Churn"]
 # ======================================================
 # Training + Logging
 # ======================================================
-with mlflow.start_run(run_name="telco_logreg_ci"):
 
-    model = LogisticRegression(
-        max_iter=1000,
-        solver="liblinear"
-    )
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
+model = LogisticRegression(
+    max_iter=1000,
+    solver="liblinear"
+)
+model.fit(X_train, y_train)
 
-    metrics = {
-        "accuracy": accuracy_score(y_test, y_pred),
-        "precision": precision_score(y_test, y_pred, zero_division=0),
-        "recall": recall_score(y_test, y_pred, zero_division=0),
-        "f1_score": f1_score(y_test, y_pred, zero_division=0),
-    }
+y_pred = model.predict(X_test)
 
-    mlflow.log_param("model_type", "LogisticRegression")
-    mlflow.log_param("solver", "liblinear")
-    mlflow.log_param("max_iter", 1000)
-    mlflow.log_metrics(metrics)
+# ======================================================
+# Metrics
+# ======================================================
+metrics = {
+    "accuracy": accuracy_score(y_test, y_pred),
+    "precision": precision_score(y_test, y_pred, zero_division=0),
+    "recall": recall_score(y_test, y_pred, zero_division=0),
+    "f1_score": f1_score(y_test, y_pred, zero_division=0),
+}
 
-    # ===============================
-    # Log Model
-    # ===============================
-    mlflow.sklearn.log_model(
-        sk_model=model,
-        name="model"
-    )
+mlflow.log_param("model_type", "LogisticRegression")
+mlflow.log_param("solver", "liblinear")
+mlflow.log_param("max_iter", 1000)
+mlflow.log_metrics(metrics)
 
-    # ===============================
-    # Artifacts
-    # ===============================
-    cm = confusion_matrix(y_test, y_pred)
-    plt.figure(figsize=(5, 4))
-    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
-    plt.tight_layout()
-    cm_path = os.path.join(ARTIFACT_DIR, "confusion_matrix.png")
-    plt.savefig(cm_path)
-    plt.close()
-    mlflow.log_artifact(cm_path)
+# ======================================================
+# Log Model
+# ======================================================
+mlflow.sklearn.log_model(
+    sk_model=model,
+    artifact_path="model"
+)
 
-    report_path = os.path.join(ARTIFACT_DIR, "classification_report.txt")
-    with open(report_path, "w") as f:
-        f.write(classification_report(y_test, y_pred, zero_division=0))
-    mlflow.log_artifact(report_path)
+# ======================================================
+# Artifacts
+# ======================================================
+cm = confusion_matrix(y_test, y_pred)
+plt.figure(figsize=(5, 4))
+sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+plt.tight_layout()
 
-    metric_json_path = os.path.join(ARTIFACT_DIR, "metric_summary.json")
-    with open(metric_json_path, "w") as f:
-        json.dump(metrics, f, indent=4)
-    mlflow.log_artifact(metric_json_path)
+cm_path = os.path.join(ARTIFACT_DIR, "confusion_matrix.png")
+plt.savefig(cm_path)
+plt.close()
+mlflow.log_artifact(cm_path)
 
-    # ===============================
-    # Save run_id
-    # ===============================
-    run_id = mlflow.active_run().info.run_id
-    run_id_path = os.path.join(BASE_DIR, "run_id.txt")
-    with open(run_id_path, "w") as f:
-        f.write(run_id)
-    mlflow.log_artifact(run_id_path)
+report_path = os.path.join(ARTIFACT_DIR, "classification_report.txt")
+with open(report_path, "w") as f:
+    f.write(classification_report(y_test, y_pred, zero_division=0))
+mlflow.log_artifact(report_path)
 
-    print("Run ID:", run_id)
-    print("Metrics:", metrics)
+metric_json_path = os.path.join(ARTIFACT_DIR, "metric_summary.json")
+with open(metric_json_path, "w") as f:
+    json.dump(metrics, f, indent=4)
+mlflow.log_artifact(metric_json_path)
+
+# ======================================================
+# Save run_id
+# ======================================================
+run_id = mlflow.active_run().info.run_id
+run_id_path = os.path.join(BASE_DIR, "run_id.txt")
+
+with open(run_id_path, "w") as f:
+    f.write(run_id)
+
+mlflow.log_artifact(run_id_path)
+
+print("Run ID:", run_id)
+print("Metrics:", metrics)
