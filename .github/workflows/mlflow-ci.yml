@@ -13,112 +13,115 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # =========================
-      # 1. Set up job
-      # =========================
-      - name: Set up job
-        run: echo "Starting MLflow CI pipeline"
+    # ==================================================
+    # 1. Set up job
+    # ==================================================
+    - name: Set up job
+      run: echo "Starting MLflow CI Advanced Pipeline"
 
-      # =========================
-      # 2. Checkout repository
-      # =========================
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    # ==================================================
+    # 2. Run actions/checkout@v3
+    # ==================================================
+    - name: Run actions/checkout@v3
+      uses: actions/checkout@v3
 
-      # =========================
-      # 3. Set up Python environment
-      # =========================
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
+    # ==================================================
+    # 3. Set up Python 3.12.7
+    # ==================================================
+    - name: Set up Python 3.12.7
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12.7"
 
-      # =========================
-      # 4. Check environment
-      # =========================
-      - name: Check environment
-        run: |
-          python --version
-          pip --version
+    # ==================================================
+    # 4. Check Env
+    # ==================================================
+    - name: Check Env
+      run: |
+        python --version
+        pip --version
 
-      # =========================
-      # 5. Install dependencies
-      # =========================
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install mlflow pandas scikit-learn
+    # ==================================================
+    # 5. Install dependencies
+    # ==================================================
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install mlflow pandas scikit-learn matplotlib seaborn dagshub
 
-      # =========================
-      # 6. Run MLflow Project
-      # =========================
-      - name: Run MLflow Project
-        run: |
-          cd MLProject
-          mlflow run .
+    # ==================================================
+    # 6. Run mlflow project
+    # ==================================================
+    - name: Run mlflow project
+      run: |
+        cd MLProject
+        mlflow run . --env-manager=local
 
-      # =========================
-      # 7. Get latest MLflow run_id
-      # =========================
-      - name: Get latest MLflow run_id
-        run: |
-          cd MLProject
-          echo "MLflow run_id:"
-          cat run_id.txt
+    # ==================================================
+    # 7. Get latest MLflow run_id
+    # ==================================================
+    - name: Get latest MLflow run_id
+      run: |
+        cd MLProject
+        echo "RUN_ID=$(cat run_id.txt)" >> $GITHUB_ENV
+        cat run_id.txt
 
-      # =================================================
-      # =============== SKILLED LEVEL ===================
-      # =================================================
+    # ==================================================
+    # 8. Install Python dependencies (explicit – sesuai rubrik)
+    # ==================================================
+    - name: Install Python dependencies
+      run: |
+        pip install docker
 
-      # =========================
-      # 8. Prepare MLflow artifacts
-      # =========================
-      - name: Prepare MLflow artifacts
-        run: |
-          mkdir -p artifacts
-          zip -r artifacts/mlflow_artifacts.zip MLProject/mlruns
+    # ==================================================
+    # 9. Upload to GitHub (pengganti Google Drive)
+    # ==================================================
+    - name: Upload to GitHub
+      uses: actions/upload-artifact@v4
+      with:
+        name: mlflow-artifacts
+        path: |
+          MLProject/mlruns
+          MLProject/run_id.txt
+        retention-days: 7
 
-      # =========================
-      # 9. Upload MLflow artifacts
-      # =========================
-      - name: Upload MLflow Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: mlflow-artifacts
-          path: artifacts/mlflow_artifacts.zip
+    # ==================================================
+    # 10. Build Docker Model
+    # ==================================================
+    - name: Build Docker Model
+      run: |
+        cd MLProject
+        mlflow models build-docker \
+          -m runs:/$RUN_ID/model \
+          -n ${{ secrets.DOCKER_USERNAME }}/telco-churn-mlflow
 
-      # =================================================
-      # =============== ADVANCED LEVEL ==================
-      # =================================================
+    # ==================================================
+    # 11. Log in to Docker Hub
+    # ==================================================
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # =========================
-      # 10. Build Docker image from MLflow model
-      # =========================
-      - name: Build Docker Model
-        run: |
-          cd MLProject
-          mlflow models build-docker \
-            -m runs:/$(cat run_id.txt)/model \
-            -n ${{ secrets.DOCKER_USERNAME }}/telco-churn-mlflow
+    # ==================================================
+    # 12. Tag Docker Image
+    # ==================================================
+    - name: Tag Docker Image
+      run: |
+        docker tag \
+          ${{ secrets.DOCKER_USERNAME }}/telco-churn-mlflow \
+          ${{ secrets.DOCKER_USERNAME }}/telco-churn-mlflow:latest
 
-      # =========================
-      # 11. Login to Docker Hub
-      # =========================
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+    # ==================================================
+    # 13. Push Docker Image
+    # ==================================================
+    - name: Push Docker Image
+      run: |
+        docker push ${{ secrets.DOCKER_USERNAME }}/telco-churn-mlflow:latest
 
-      # =========================
-      # 12. Push Docker image
-      # =========================
-      - name: Push Docker Image
-        run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/telco-churn-mlflow
-
-      # =========================
-      # 13. Complete job
-      # =========================
-      - name: Complete job
-        run: echo "MLflow CI Advanced pipeline completed successfully"
+    # ==================================================
+    # 14. Complete job
+    # ==================================================
+    - name: Complete job
+      run: echo "MLflow CI Advanced job completed successfully"
