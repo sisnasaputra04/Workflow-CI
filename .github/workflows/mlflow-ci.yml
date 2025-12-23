@@ -86,7 +86,7 @@ jobs:
 
       - name: DEBUG - Docker Login Check
         run: |
-          docker info
+          docker info | sed -n '1,80p'
 
       - name: DEBUG - Check MLflow Model Artifact
         run: |
@@ -100,14 +100,14 @@ jobs:
       - name: Build Docker Model
         run: |
           RUN_ID=$(cat MLProject/run_id.txt)
-          echo "Build docker from RUN_ID=$RUN_ID"
+          echo "RUN_ID=$RUN_ID"
           mlflow models build-docker \
             -m "runs:/$RUN_ID/model" \
-            -n "telco-churn:latest"
-      
+            -n "${{ secrets.DOCKER_USERNAME }}/telco-churn:latest"
+              
       - name: DEBUG - List Docker Images
         run: |
-          docker images
+          docker images | head -n 20
 
       - name: Debug Docker Username
         run: |
@@ -119,6 +119,11 @@ jobs:
       - name: Tag Docker Image
         run: |
           docker tag telco-churn:latest "${{ secrets.DOCKER_USERNAME }}/telco-churn:latest"
+
+      - name: DEBUG - Check exact tag exists
+        run: |
+          docker image inspect "${{ secrets.DOCKER_USERNAME }}/telco-churn:latest" >/dev/null
+          echo "OK: tag exists"
 
       # ==================================================
       # 10. Push Docker Image
@@ -132,5 +137,3 @@ jobs:
       # ==================================================
       - name: Complete
         run: echo "Docker image berhasil dipush ke Docker Hub"
-
-        
