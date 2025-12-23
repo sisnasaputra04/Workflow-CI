@@ -84,7 +84,9 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      
+      - name: DEBUG - Docker Login Check
+        run: |
+          docker info
 
       - name: DEBUG - Check MLflow Model Artifact
         run: |
