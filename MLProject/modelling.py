@@ -74,7 +74,7 @@ mlflow.log_param("max_iter", 1000)
 mlflow.log_metrics(metrics)
 
 # ======================================================
-# Log Model
+# Log Model (WAJIB: artifact_path="model")
 # ======================================================
 mlflow.sklearn.log_model(
     sk_model=model,
@@ -105,7 +105,7 @@ with open(metric_json_path, "w") as f:
 mlflow.log_artifact(metric_json_path)
 
 # ======================================================
-# Save run_id
+# Save run_id (CI & Docker)
 # ======================================================
 run_id = mlflow.active_run().info.run_id
 run_id_path = os.path.join(BASE_DIR, "run_id.txt")
