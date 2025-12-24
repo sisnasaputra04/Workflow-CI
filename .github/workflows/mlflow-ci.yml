@@ -82,7 +82,7 @@ jobs:
           ls -R mlruns
 
       # ==================================================
-      # 8. Build Docker Image from MLflow Model
+      # 7. Build Docker Image from MLflow Model
       # ==================================================
       - name: Build Docker Model
         run: |
@@ -111,7 +111,7 @@ jobs:
           docker images | head -n 20
 
       # ==================================================
-      # 7. Login Docker Hub
+      # 8. Login Docker Hub
       # ==================================================
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -124,14 +124,14 @@ jobs:
           docker info | sed -n '1,80p'
 
       # ==================================================
-      # 10. Push Docker Image
+      # 9. Push Docker Image
       # ==================================================
       - name: Push Docker Image
         run: |
           docker push "${{ secrets.DOCKER_USERNAME }}/telco-churn:latest"
 
       # ==================================================
-      # 11. Done
+      # 10. Done
       # ==================================================
       - name: Complete
         run: echo "Docker image berhasil dipush ke Docker Hub"
